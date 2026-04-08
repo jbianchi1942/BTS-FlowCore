@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sony Sorter — Sort Rate Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f4f3ef; --surface: #fff; --border: #d8d6cf;
+    --text: #1a1a18; --muted: #7a7870; --accent: #1a3a5c;
+    --accent-light: #e6f1fb; --warn: #854f0b; --warn-light: #faeeda;
+    --danger: #a32d2d; --danger-light: #fcebeb; --ok: #3b6d11; --ok-light: #eaf3de;
+    --mono: 'IBM Plex Mono', monospace; --sans: 'IBM Plex Sans', sans-serif;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding: 2rem 1rem 4rem; }
+  .page { max-width: 680px; margin: 0 auto; }
+  header { margin-bottom: 2rem; border-bottom: 1.5px solid var(--text); padding-bottom: 1rem; }
+  h1 { font-family: var(--mono); font-size: 22px; font-weight: 500; }
+  .subtitle { font-size: 13px; color: var(--muted); margin-top: 4px; font-family: var(--mono); }
+  .section { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  .section-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 1.25rem; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 1.25rem 0; }
+
+  /* Chip selector */
+  .chip-selector { display: flex; gap: 8px; }
+  .chip-btn { flex: 1; padding: 0.6rem 0.5rem; font-family: var(--mono); font-size: 13px; border: 1px solid var(--border); border-radius: 5px; background: none; cursor: pointer; color: var(--muted); transition: all 0.12s; text-align: center; line-height: 1.4; }
+  .chip-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .chip-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+  .chip-btn small { display: block; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .chip-btn.active small { color: var(--accent); }
+  .chip-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border); }
+  .chip-info-item { text-align: center; }
+  .ci-label { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 3px; }
+  .ci-val { font-size: 15px; font-family: var(--mono); font-weight: 500; color: var(--accent); }
+  .ci-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+  /* Input grid */
+  .input-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-group label { font-size: 12px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+  .input-group input[type=number] { font-family: var(--mono); font-size: 15px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); width: 100%; outline: none; }
+  .input-group input[type=number]:focus { border-color: var(--accent); }
+
+  /* Slider */
+  .slider-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+  .slider-row input[type=range] { flex: 1; -webkit-appearance: none; height: 3px; background: var(--border); border-radius: 2px; outline: none; }
+  .slider-row input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); cursor: pointer; border: 2px solid var(--surface); box-shadow: 0 0 0 1px var(--accent); }
+  .slider-row input[type=number] { font-family: var(--mono); font-size: 15px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg); color: var(--text); width: 110px; outline: none; flex-shrink: 0; }
+  .slider-row input[type=number]:focus { border-color: var(--accent); }
+  .slider-unit { font-family: var(--mono); font-size: 13px; color: var(--muted); white-space: nowrap; }
+
+  /* Mode buttons */
+  .mode-selector { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .mode-btn { padding: 0.65rem 0.4rem; font-family: var(--mono); font-size: 12px; border: 1px solid var(--border); border-radius: 5px; background: none; cursor: pointer; color: var(--muted); transition: all 0.12s; text-align: center; line-height: 1.5; }
+  .mode-btn.active { border-color: var(--accent); background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .mode-btn:not(.active):hover { border-color: var(--accent); color: var(--accent); }
+  .mode-btn strong { display: block; font-size: 12px; }
+  .mode-btn small { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .mode-btn.active small { color: var(--accent); }
+
+  /* Results */
+  .results-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 10px; }
+  .results-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+  .result-card { background: var(--accent-light); border: 1px solid #b5d4f4; border-radius: 6px; padding: 1rem; }
+  .rlabel { font-size: 10px; font-family: var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .rval { font-family: var(--mono); font-size: 26px; font-weight: 500; color: var(--text); line-height: 1.1; }
+  .rsub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* Status */
+  .warn-tag { font-size: 12px; font-family: var(--mono); color: var(--warn); margin-top: 8px; }
+  .status-bar { font-size: 13px; padding: 10px 14px; border-radius: 6px; font-family: var(--mono); border-left: 3px solid; margin-bottom: 1rem; }
+  .status-bad { background: var(--danger-light); color: var(--danger); border-color: var(--danger); }
+  .status-neu { background: var(--bg); color: var(--muted); border-color: var(--border); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header>
+    <h1>Sort Rate Calculator</h1>
+    <div class="subtitle">Sony MA900 / SH800</div>
+  </header>
+
+  <!-- Chip -->
+  <div class="section">
+    <div class="section-title">Nozzle chip</div>
+    <div class="chip-selector">
+      <button class="chip-btn" onclick="setChip(70, this)">70 &mu;m<small>LE-C3207 &mdash; ~50 kHz</small></button>
+      <button class="chip-btn active" onclick="setChip(100, this)">100 &mu;m<small>LE-C3210 &mdash; ~30 kHz</small></button>
+      <button class="chip-btn" onclick="setChip(130, this)">130 &mu;m<small>LE-C3213 &mdash; ~12 kHz</small></button>
+    </div>
+    <div class="chip-info-grid">
+      <div class="chip-info-item">
+        <div class="ci-label">Drop rate</div>
+        <div class="ci-val" id="ciDropRate">30 kHz</div>
+      </div>
+      <div class="chip-info-item">
+        <div class="ci-label">Drop volume</div>
+        <div class="ci-val" id="ciDropVol">2.81 nL</div>
+      </div>
+      <div class="chip-info-item">
+        <div class="ci-label">Max event rate</div>
+        <div class="ci-val" id="ciMaxEps">6K/s</div>
+        <div class="ci-sub">for purity</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Inputs -->
+  <div class="section">
+    <div class="section-title">Parameters</div>
+    <div class="input-grid">
+      <div class="input-group">
+        <label>Drop rate (kHz) <span style="font-size:10px; color:var(--accent); font-weight:500;">auto</span></label>
+        <input type="number" id="dropRate" value="30" step="1" min="1" oninput="calc()" readonly
+          style="background:var(--accent-light); color:var(--accent); border-color:#b5d4f4; cursor:default;">
+      </div>
+      <div class="input-group">
+        <label>Sort goal (cells)</label>
+        <input type="number" id="sortGoal" value="100000" step="10000" min="1" oninput="calc()">
+      </div>
+      <div class="input-group">
+        <label>Target cell (%)</label>
+        <input type="number" id="targetPct" value="5" step="0.1" min="0.01" max="100" oninput="calc()">
+      </div>
+    </div>
+    <div class="divider"></div>
+    <div class="section-title" style="margin-bottom:0.75rem;">Event rate</div>
+    <div class="slider-row">
+      <input type="range" id="epsSlider" min="0" max="15000" step="100" value="5000"
+        oninput="document.getElementById('eps').value=this.value; calc()">
+      <input type="number" id="eps" value="5000" step="500" min="0"
+        oninput="document.getElementById('epsSlider').value=this.value; calc()">
+      <span class="slider-unit">eps</span>
+    </div>
+    <div class="warn-tag" id="epsWarn" style="display:none;"></div>
+  </div>
+
+  <!-- Sort mode -->
+  <div class="section">
+    <div class="section-title">Sort mode</div>
+    <div class="mode-selector">
+      <button class="mode-btn" onclick="setMode('Normal', 1, this)">
+        <strong>Normal</strong><small>1&times; drops</small>
+      </button>
+      <button class="mode-btn active" onclick="setMode('Semi-Purity', 1.5, this)">
+        <strong>Semi-purity</strong><small>1.5&times; drops</small>
+      </button>
+      <button class="mode-btn" onclick="setMode('Purity', 2, this)">
+        <strong>Purity</strong><small>2&times; drops</small>
+      </button>
+      <button class="mode-btn" onclick="setMode('Ultra-Purity', 3, this)">
+        <strong>Ultra-purity</strong><small>3&times; drops</small>
+      </button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="section">
+    <div class="section-title">Results</div>
+    <div class="status-bar status-neu" id="statusBar">&nbsp;</div>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="rlabel">Sort time</div>
+        <div class="rval" id="sortTime">—</div>
+        <div class="rsub">h:mm</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Sort efficiency</div>
+        <div class="rval" id="sortEff">—</div>
+        <div class="rsub">%</div>
+      </div>
+    </div>
+    <div class="results-grid-3">
+      <div class="result-card">
+        <div class="rlabel">Sample required</div>
+        <div class="rval" id="sampleReq">—</div>
+        <div class="rsub">cells</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Sample volume</div>
+        <div class="rval" id="sampleVol">—</div>
+        <div class="rsub">mL</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Sample density</div>
+        <div class="rval" id="sampleDensity">—</div>
+        <div class="rsub">cells/mL</div>
+      </div>
+    </div>
+    <div class="results-grid">
+      <div class="result-card">
+        <div class="rlabel">Vol. of sorted drops</div>
+        <div class="rval" id="sortedDropVol">—</div>
+        <div class="rsub">mL</div>
+      </div>
+      <div class="result-card">
+        <div class="rlabel">Drop volume</div>
+        <div class="rval" id="dropVol">—</div>
+        <div class="rsub">nL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CHIP_DATA = {
+  70:  { dropRate: 50, maxEps: 12000, label: '~50 kHz' },
+  100: { dropRate: 30, maxEps: 6000,  label: '~30 kHz' },
+  130: { dropRate: 12, maxEps: 2500,  label: '~12 kHz' }
+};
+
+let modeMultiplier = 1.5; // default Semi-Purity (matches Excel)
+
+function setMode(name, mult, btn) {
+  modeMultiplier = mult;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  calc();
+}
+
+function setChip(size, btn) {
+  document.querySelectorAll('.chip-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const cd = CHIP_DATA[size];
+  document.getElementById('dropRate').value = cd.dropRate;
+  // Update chip info panel - drop vol computed from formula in calc()
+  document.getElementById('ciDropRate').textContent = cd.label;
+  document.getElementById('ciMaxEps').textContent = (cd.maxEps/1000) + 'K/s';
+  calc();
+}
+
+function fmtTime(min) {
+  if (!isFinite(min) || min <= 0) return '\u2014';
+  const h = Math.floor(min / 60);
+  const m = Math.round(min - h * 60);
+  return h + ':' + (m < 10 ? '0' : '') + m;
+}
+
+function fmtCells(n) {
+  if (!n || n <= 0) return '\u2014';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return Math.round(n).toLocaleString();
+}
+
+function calc() {
+  const dropRate = parseFloat(document.getElementById('dropRate').value) || 0;
+  const sortGoal = parseFloat(document.getElementById('sortGoal').value) || 0;
+  const targetPct = parseFloat(document.getElementById('targetPct').value) || 0;
+  const eps = parseFloat(document.getElementById('eps').value) || 0;
+
+  // Drop volume: K29 = POWER(dropRate_kHz, -1.151) * 140.81
+  const dropVolNL = dropRate > 0 ? Math.pow(dropRate, -1.151) * 140.81 : 0;
+  document.getElementById('dropVol').textContent = dropVolNL > 0 ? dropVolNL.toFixed(2) : '—';
+  document.getElementById('ciDropVol').textContent = dropVolNL > 0 ? dropVolNL.toFixed(2) + ' nL' : '—';
+
+  // Max event rate by chip: IF(dropRate>35, 12000, IF(dropRate>15, 6000, 2500))
+  const maxEps = dropRate > 35 ? 12000 : dropRate > 15 ? 6000 : 2500;
+  const epsWarn = document.getElementById('epsWarn');
+  if (eps > maxEps) {
+    epsWarn.style.display = 'block';
+    epsWarn.textContent = '\u26A0 Exceeds recommended max of ' + maxEps.toLocaleString() + ' eps for this drop rate';
+  } else {
+    epsWarn.style.display = 'none';
+  }
+
+  // Efficiency = 1 / e^((1 - p) * (eps/1000 / dropRate) * modeMultiplier)
+  // where eps/1000/dropRate = keps/kHz = events per drop
+  const p = targetPct / 100;
+  const eventsPerDrop = (eps / 1000) / dropRate;
+  const efficiency = (p > 0 && dropRate > 0 && eps > 0)
+    ? 1 / Math.exp((1 - p) * eventsPerDrop * modeMultiplier)
+    : 0;
+
+  // Sample required = sortGoal / p / efficiency
+  const sampleReq = (sortGoal > 0 && p > 0 && efficiency > 0)
+    ? sortGoal / p / efficiency : 0;
+
+  // Time in minutes = sampleReq / eps / 60
+  const timeMins = (sampleReq > 0 && eps > 0) ? (sampleReq / eps) / 60 : 0;
+
+  // Sample volume: flow rate fixed at 30 uL/min (as in Excel N29/N30/N31)
+  // sampleDensity (cells/uL) = eps / (30/60) = eps / 0.5
+  // sampleVol (mL) = sampleReq / sampleDensity / 1000
+  const flowRate_uLs = 30 / 60;
+  const sampleDensity_uL = eps > 0 ? eps / flowRate_uLs : 0;
+  const sampleVol_mL = (sampleReq > 0 && sampleDensity_uL > 0)
+    ? sampleReq / sampleDensity_uL / 1000 : 0;
+  const sampleDensity_mL = sampleVol_mL > 0 ? sampleReq / sampleVol_mL : 0;
+
+  // Vol of sorted drops = sortGoal * dropVolNL / 1,000,000
+  const sortedDropVol_mL = (sortGoal > 0 && dropVolNL > 0)
+    ? (sortGoal * dropVolNL) / 1e6 : 0;
+
+  // Update outputs
+  document.getElementById('sortTime').textContent = fmtTime(timeMins);
+  document.getElementById('sortEff').textContent = efficiency > 0
+    ? (efficiency * 100).toFixed(1) + '%' : '\u2014';
+  document.getElementById('sampleReq').textContent = fmtCells(sampleReq);
+  document.getElementById('sampleVol').textContent = sampleVol_mL > 0
+    ? sampleVol_mL.toFixed(2) : '\u2014';
+  document.getElementById('sampleDensity').textContent = sampleDensity_mL > 0
+    ? (sampleDensity_mL / 1e6).toFixed(1) + 'M' : '\u2014';
+  document.getElementById('sortedDropVol').textContent = sortedDropVol_mL > 0
+    ? sortedDropVol_mL.toFixed(4) : '\u2014';
+
+  // Status
+  const bar = document.getElementById('statusBar');
+  if (eps > maxEps) {
+    bar.className = 'status-bar status-bad';
+    bar.textContent = '\u26A0 Event rate exceeds recommended maximum for this drop rate. Purity may be affected.';
+  } else {
+    bar.className = 'status-bar status-neu';
+    bar.textContent = '\u00A0';
+  }
+}
+
+calc();
+</script>
+</body>
+</html>
