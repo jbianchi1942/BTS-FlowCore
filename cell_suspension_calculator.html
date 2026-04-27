@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cell/Nuclei Suspension Calculator</title>
+<title>Cell and Nuclei Resuspension Calculator</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -70,6 +70,13 @@
     border-radius: var(--radius);
     padding: 1.25rem 1.5rem;
     margin-bottom: 1.25rem;
+  }
+
+  .section-blurb {
+    font-size: 0.82rem;
+    color: var(--text2);
+    margin-bottom: 1rem;
+    line-height: 1.55;
   }
 
   .section-title {
@@ -193,8 +200,7 @@
   th {
     font-size: 0.72rem;
     font-weight: 600;
-    letter-spacing: 0.07em;
-    text-transform: uppercase;
+    letter-spacing: 0.04em;
     color: var(--text3);
     text-align: left;
     padding: 0 0.5rem 0.6rem;
@@ -425,7 +431,7 @@
 
   <header>
     <p style="font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:0.35rem;">Broad Technology Space &ndash; Flow Cytometry Core</p>
-    <h1>Cell/Nuclei Suspension Calculator</h1>
+    <h1>Cell and Nuclei Resuspension Calculator</h1>
     <p>Up to 10 samples &middot; 1–3 replicates &middot; concentration adjustment or cells-per-volume</p>
     <p style="margin-top:0.35rem; font-size:0.78rem; color:var(--text3);">Contact: <a href="mailto:flowcytostaff@broadinstitute.org" style="color:var(--accent); text-decoration:none;">flowcytostaff@broadinstitute.org</a></p>
   </header>
@@ -433,6 +439,7 @@
   <!-- Mode selection -->
   <div class="section-card">
     <div class="section-title">Calculation mode</div>
+    <p class="section-blurb">Choose calculation mode. <strong>Target concentration</strong> adjusts each sample to a desired density (cells/mL). <strong>Cells per volume</strong> calculates how much to resuspend in to achieve a desired number of cells per aliquot.</p>
     <div class="mode-tabs">
       <button class="mode-tab active" onclick="setMode('conc')" id="tab-conc">Target concentration</button>
       <button class="mode-tab" onclick="setMode('cpv')" id="tab-cpv">Cells per volume</button>
@@ -459,7 +466,10 @@
         <input type="number" id="cpv-cells" min="0" step="any" placeholder="e.g. 200000" style="width:150px" oninput="recalc()">
         <span style="font-size:0.82rem; color:var(--text3);">cells per</span>
         <input type="number" id="cpv-vol" min="0" step="any" placeholder="e.g. 50" style="width:90px" oninput="recalc()">
-        <span style="font-size:0.82rem; color:var(--text3);">µL</span>
+        <select id="cpv-unit" class="rep-select" onchange="recalc()">
+          <option value="uL">µL</option>
+          <option value="mL">mL</option>
+        </select>
       </div>
     </div>
   </div>
@@ -467,6 +477,7 @@
   <!-- Samples table -->
   <div class="section-card">
     <div class="section-title">Samples</div>
+    <p class="section-blurb">Use the slider to set the number of samples. Enter your cell count(s) in cells/mL and the total sample volume. If using Target Concentration mode, enter your desired target concentration.</p>
 
     <div class="sample-controls">
       <label>Number of samples</label>
@@ -480,12 +491,13 @@
         <tbody id="table-body"></tbody>
       </table>
     </div>
-    <p class="tbl-note">Enter measured concentration(s) and total counted volume. Replicates are averaged.</p>
+
   </div>
 
   <!-- Results -->
   <div class="section-card">
     <div class="section-title">Results</div>
+    <p class="section-blurb">Total cell counts and resuspension volumes are calculated per sample. Resuspension volume is shown in mL or µL depending on magnitude. Values flagged in amber indicate very small volumes (&lt;10 µL) that may be difficult to pipette accurately.</p>
     <div id="results-table-wrap"></div>
   </div>
 
@@ -505,6 +517,7 @@ let nSamples = 3;
 const MAX_SAMPLES = 10;
 
 function setMode(m) {
+  const state = saveState();
   mode = m;
   document.getElementById('tab-conc').classList.toggle('active', m === 'conc');
   document.getElementById('tab-cpv').classList.toggle('active', m === 'cpv');
@@ -512,14 +525,50 @@ function setMode(m) {
   document.getElementById('mode-cpv').style.display = m === 'cpv' ? '' : 'none';
   buildTableHead();
   buildTableBody();
+  restoreState(state);
   recalc();
 }
 
+function saveState() {
+  const state = [];
+  for (let i = 0; i < 10; i++) {
+    const name = document.getElementById('name-' + i)?.value || '';
+    const reps = parseInt(document.getElementById('reps-' + i)?.value || 1);
+    const concs = [];
+    for (let r = 0; r < 3; r++) {
+      concs.push(document.getElementById(`conc-${i}-${r}`)?.value || '');
+    }
+    const vol = document.getElementById('vol-' + i)?.value || '';
+    const target = document.getElementById('target-' + i)?.value || '';
+    state.push({ name, reps, concs, vol, target });
+  }
+  return state;
+}
+
+function restoreState(state) {
+  state.forEach((s, i) => {
+    const nameEl = document.getElementById('name-' + i);
+    if (nameEl) nameEl.value = s.name;
+    const repEl = document.getElementById('reps-' + i);
+    if (repEl) { repEl.value = s.reps; updateReps(i); }
+    for (let r = 0; r < 3; r++) {
+      const concEl = document.getElementById(`conc-${i}-${r}`);
+      if (concEl) concEl.value = s.concs[r];
+    }
+    const volEl = document.getElementById('vol-' + i);
+    if (volEl) volEl.value = s.vol;
+    const targetEl = document.getElementById('target-' + i);
+    if (targetEl) targetEl.value = s.target;
+  });
+}
+
 function toggleSameConc() {
+  const state = saveState();
   const on = document.getElementById('same-conc').checked;
   document.getElementById('global-conc-row').style.display = on ? 'flex' : 'none';
   buildTableHead();
   buildTableBody();
+  restoreState(state);
   recalc();
 }
 
@@ -533,17 +582,18 @@ function applyGlobalConc() {
 }
 
 function updateSampleCount() {
+  const state = saveState();
   nSamples = parseInt(document.getElementById('n-samples').value);
   document.getElementById('sample-count-badge').textContent = nSamples;
   buildTableBody();
+  restoreState(state);
   recalc();
 }
 
 function fmtNum(n, digits) {
   if (n === null || isNaN(n)) return '—';
   if (digits === undefined) {
-    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + 'M';
-    if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+    if (Math.abs(n) >= 1e4) return n.toExponential(2);
     return n.toFixed(0);
   }
   return n.toFixed(digits);
@@ -551,9 +601,7 @@ function fmtNum(n, digits) {
 
 function fmtCells(n) {
   if (n === null || isNaN(n)) return '—';
-  if (n >= 1e9) return (n / 1e9).toFixed(3) + ' B';
-  if (n >= 1e6) return (n / 1e6).toFixed(3) + ' M';
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + ' k';
+  if (n >= 1e4) return n.toExponential(2);
   return n.toFixed(0);
 }
 
@@ -561,7 +609,8 @@ function buildTableHead() {
   const sameConc = document.getElementById('same-conc').checked;
   const head = document.getElementById('table-head');
   let cols = `
-    <th class="col-s">Sample</th>
+    <th class="col-s">#</th>
+    <th class="col-l">Name</th>
     <th class="col-m">Replicates</th>
     <th>Concentration(s) (cells/mL)</th>
     <th class="col-l">Volume (mL)</th>
@@ -578,6 +627,7 @@ function buildTableBody() {
   body.innerHTML = '';
   for (let i = 0; i < nSamples; i++) {
     const tr = document.createElement('tr');
+    const nameInput = `<input type="text" id="name-${i}" placeholder="S${i + 1}" style="font-family:var(--sans); font-size:0.85rem; background:var(--surface2); border:1px solid var(--border); border-radius:6px; padding:5px 8px; color:var(--text); outline:none; width:100%;">`;
     const repSel = `<select class="rep-select" id="reps-${i}" onchange="updateReps(${i})" title="Replicates">
       <option value="1">1</option>
       <option value="2">2</option>
@@ -593,6 +643,7 @@ function buildTableBody() {
     }
     tr.innerHTML = `
       <td><span class="sample-label">S${i + 1}</span></td>
+      <td>${nameInput}</td>
       <td>${repSel}</td>
       <td>${repInputs}</td>
       <td>${volInput}</td>
@@ -637,6 +688,13 @@ function recalc() {
 
   let rows = [];
   for (let i = 0; i < nSamples; i++) {
+    const nReps = parseInt(document.getElementById('reps-' + i).value);
+    const repVals = [];
+    for (let r = 0; r < nReps; r++) {
+      const el = document.getElementById(`conc-${i}-${r}`);
+      const v = parseFloat(el ? el.value : '');
+      repVals.push(!isNaN(v) && v > 0 ? v : null);
+    }
     const avgConc = getConc(i);
     const vol = parseFloat(document.getElementById('vol-' + i)?.value);
     const totalCells = (avgConc && vol && vol > 0) ? avgConc * vol : null;
@@ -656,8 +714,10 @@ function recalc() {
     } else {
       const cpvCells = parseFloat(document.getElementById('cpv-cells').value);
       const cpvVol = parseFloat(document.getElementById('cpv-vol').value);
+      const cpvUnit = document.getElementById('cpv-unit').value;
+      const cpvVolMl = cpvUnit === 'uL' ? cpvVol / 1000 : cpvVol;
       if (totalCells && cpvCells > 0 && cpvVol > 0) {
-        const cpvConc = cpvCells / (cpvVol / 1000);
+        const cpvConc = cpvCells / cpvVolMl;
         resusVol = totalCells / cpvConc;
         nVolumes = Math.floor(totalCells / cpvCells);
         leftCells = totalCells - nVolumes * cpvCells;
@@ -665,7 +725,9 @@ function recalc() {
       }
     }
 
-    rows.push({ i, avgConc, vol, totalCells, resusVol, nVolumes, leftCells, leftVol, err });
+    const nameEl = document.getElementById('name-' + i);
+    const name = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : `S${i + 1}`;
+    rows.push({ i, name, repVals, avgConc, vol, totalCells, resusVol, nVolumes, leftCells, leftVol, err });
   }
 
   lastRows = rows;
@@ -682,15 +744,20 @@ function renderResults(rows) {
   if (mode === 'conc') {
     html += `<th>Resuspend in</th>`;
   } else {
-    const cpvCells = document.getElementById('cpv-cells').value;
-    const cpvVol = document.getElementById('cpv-vol').value;
-    html += `<th>Resuspend in</th><th>${cpvCells ? fmtCells(parseFloat(cpvCells)) : 'N'} / ${cpvVol || 'V'} µL volumes</th><th>Remainder</th>`;
+    const cpvCellsRaw = parseFloat(document.getElementById('cpv-cells').value);
+    const cpvVolRaw = document.getElementById('cpv-vol').value;
+    const cpvUnitEl = document.getElementById('cpv-unit');
+    const cpvUnitVal = cpvUnitEl ? cpvUnitEl.value : 'uL';
+    const cellLabel = !isNaN(cpvCellsRaw) ? cpvCellsRaw.toLocaleString() : 'N';
+    const volLabel = cpvVolRaw || 'V';
+    const unitLabel = cpvUnitVal === 'mL' ? 'mL' : 'µL';
+    html += `<th>Resuspend in</th><th>${cellLabel} / ${volLabel} ${unitLabel} volumes</th><th>Remainder</th>`;
   }
   html += `</tr></thead><tbody>`;
 
   rows.forEach(r => {
     html += `<tr>
-      <td><span class="sample-label">S${r.i + 1}</span></td>
+      <td><span class="sample-label">${r.name}</span></td>
       <td class="result-cell">${r.avgConc !== null ? fmtCells(r.avgConc) + ' /mL' : '<span class="result-err">—</span>'}</td>
       <td class="result-cell">${r.totalCells !== null ? fmtCells(r.totalCells) : '<span class="result-err">—</span>'}</td>`;
 
@@ -740,30 +807,45 @@ function exportCSV() {
   const rows = lastRows;
   if (!rows.length) return;
   const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+
+  const maxReps = Math.max(...rows.map(r => r.repVals.length));
+  const repHeaders = Array.from({ length: maxReps }, (_, i) => `Rep ${i + 1} Concentration (cells/mL)`);
+
   let headers, dataRows;
   if (mode === 'conc') {
-    headers = ['Sample', 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)'];
-    dataRows = rows.map(r => [
-      `S${r.i + 1}`,
-      r.avgConc !== null ? r.avgConc.toFixed(0) : '',
-      r.vol || '',
-      r.totalCells !== null ? r.totalCells.toFixed(0) : '',
-      r.resusVol !== null ? r.resusVol.toFixed(4) : (r.err || '')
-    ]);
+    headers = ['Sample', ...repHeaders, 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)'];
+    dataRows = rows.map(r => {
+      const repCols = Array.from({ length: maxReps }, (_, i) =>
+        r.repVals[i] !== null && r.repVals[i] !== undefined ? r.repVals[i].toFixed(0) : '');
+      return [
+        r.name,
+        ...repCols,
+        r.avgConc !== null ? r.avgConc.toFixed(0) : '',
+        r.vol || '',
+        r.totalCells !== null ? r.totalCells.toFixed(0) : '',
+        r.resusVol !== null ? r.resusVol.toFixed(4) : (r.err || '')
+      ];
+    });
   } else {
     const cpvCells = document.getElementById('cpv-cells').value;
     const cpvVol = document.getElementById('cpv-vol').value;
-    headers = ['Sample', 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)', `Complete ${cpvCells} cells/${cpvVol}µL Volumes`, 'Remainder Cells', 'Remainder Volume (mL)'];
-    dataRows = rows.map(r => [
-      `S${r.i + 1}`,
-      r.avgConc !== null ? r.avgConc.toFixed(0) : '',
-      r.vol || '',
-      r.totalCells !== null ? r.totalCells.toFixed(0) : '',
-      r.resusVol !== null ? r.resusVol.toFixed(4) : '',
-      r.nVolumes !== null ? r.nVolumes : '',
-      r.leftCells !== null ? r.leftCells.toFixed(0) : '',
-      r.leftVol !== null ? r.leftVol.toFixed(4) : ''
-    ]);
+    const cpvUnit = document.getElementById('cpv-unit').value === 'uL' ? 'µL' : 'mL';
+    headers = ['Sample', ...repHeaders, 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)', `Complete ${cpvCells} cells/${cpvVol}${cpvUnit} Volumes`, 'Remainder Cells', 'Remainder Volume (mL)'];
+    dataRows = rows.map(r => {
+      const repCols = Array.from({ length: maxReps }, (_, i) =>
+        r.repVals[i] !== null && r.repVals[i] !== undefined ? r.repVals[i].toFixed(0) : '');
+      return [
+        r.name,
+        ...repCols,
+        r.avgConc !== null ? r.avgConc.toFixed(0) : '',
+        r.vol || '',
+        r.totalCells !== null ? r.totalCells.toFixed(0) : '',
+        r.resusVol !== null ? r.resusVol.toFixed(4) : '',
+        r.nVolumes !== null ? r.nVolumes : '',
+        r.leftCells !== null ? r.leftCells.toFixed(0) : '',
+        r.leftVol !== null ? r.leftVol.toFixed(4) : ''
+      ];
+    });
   }
   const csv = [headers, ...dataRows].map(row => row.map(esc).join(',')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv' });
