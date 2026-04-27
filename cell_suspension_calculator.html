@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cell Suspension Calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --border: #e0ddd4;
+    --border2: #ccc9be;
+    --text: #1a1917;
+    --text2: #6b6860;
+    --text3: #9c9a94;
+    --accent: #1a4fa0;
+    --accent-light: #e6eef9;
+    --accent-mid: #4272c4;
+    --danger: #c0392b;
+    --danger-light: #fdf0ef;
+    --warn: #b8841a;
+    --warn-light: #fdf6e3;
+    --radius: 10px;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 2rem 1rem 4rem;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .page-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+  }
+
+  header {
+    margin-bottom: 2rem;
+    border-bottom: 1.5px solid var(--border2);
+    padding-bottom: 1.25rem;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    margin-bottom: 0.2rem;
+  }
+
+  header p {
+    font-size: 0.85rem;
+    color: var(--text2);
+    font-weight: 300;
+  }
+
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 1rem;
+  }
+
+  /* Mode toggle */
+  .mode-tabs {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    overflow: hidden;
+    width: fit-content;
+    margin-bottom: 1.25rem;
+  }
+
+  .mode-tab {
+    padding: 0.5rem 1.1rem;
+    font-size: 0.85rem;
+    font-family: var(--sans);
+    font-weight: 500;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--text2);
+    transition: background 0.15s, color 0.15s;
+    border-right: 1px solid var(--border2);
+  }
+
+  .mode-tab:last-child { border-right: none; }
+  .mode-tab.active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  /* Global target row */
+  .global-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+  }
+
+  .global-row label {
+    font-size: 0.85rem;
+    color: var(--text2);
+    white-space: nowrap;
+  }
+
+  .global-row input[type="number"] {
+    width: 130px;
+  }
+
+  .checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text2);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .checkbox-row input[type="checkbox"] {
+    accent-color: var(--accent);
+    width: 15px;
+    height: 15px;
+    cursor: pointer;
+  }
+
+  /* Sample controls */
+  .sample-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .sample-controls label {
+    font-size: 0.85rem;
+    color: var(--text2);
+  }
+
+  .sample-controls input[type="range"] {
+    accent-color: var(--accent);
+    width: 120px;
+    cursor: pointer;
+  }
+
+  .count-badge {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    margin-top: 0.5rem;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    min-width: 540px;
+  }
+
+  th {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--text3);
+    text-align: left;
+    padding: 0 0.5rem 0.6rem;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.35rem 0.5rem;
+    vertical-align: middle;
+  }
+
+  tr:not(:last-child) td {
+    border-bottom: 1px solid var(--bg);
+  }
+
+  .sample-label {
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--text3);
+    font-weight: 500;
+    white-space: nowrap;
+    min-width: 55px;
+  }
+
+  input[type="number"] {
+    font-family: var(--mono);
+    font-size: 0.85rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 8px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"]:focus {
+    border-color: var(--accent-mid);
+    background: var(--surface);
+  }
+
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+  }
+
+  .rep-inputs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .rep-inputs input {
+    min-width: 80px;
+  }
+
+  .rep-select {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 5px 6px;
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+  }
+
+  /* Results */
+  .result-cell {
+    font-family: var(--mono);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .result-resus {
+    color: var(--accent);
+  }
+
+  .result-warn {
+    color: var(--warn);
+  }
+
+  .result-err {
+    color: var(--danger);
+    font-size: 0.75rem;
+    font-weight: 400;
+    font-family: var(--sans);
+  }
+
+  /* Cells per volume mode extras */
+  .cpv-extras {
+    font-size: 0.78rem;
+    color: var(--text2);
+    font-family: var(--sans);
+    line-height: 1.4;
+  }
+
+  .cpv-extras span {
+    font-family: var(--mono);
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Action bar */
+  .action-bar {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.45rem 1.1rem;
+    border-radius: 7px;
+    border: 1px solid var(--border2);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+  }
+
+  button:hover { background: var(--surface2); border-color: var(--accent-mid); }
+
+  button.primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+
+  button.primary:hover { background: #175e3e; border-color: #175e3e; }
+
+  button.danger-btn {
+    color: var(--danger);
+    border-color: var(--border2);
+  }
+
+  button.danger-btn:hover { background: var(--danger-light); border-color: var(--danger); }
+
+  /* Results summary */
+  .results-summary {
+    display: none;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--border2);
+  }
+
+  .results-summary.visible { display: block; }
+
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+  }
+
+  .summary-card {
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+  }
+
+  .summary-card .slabel {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text3);
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+
+  .summary-card .sval {
+    font-family: var(--mono);
+    font-size: 1.15rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* Tooltip-style unit hints */
+  .unit-hint {
+    font-size: 0.7rem;
+    color: var(--text3);
+    display: block;
+    margin-top: 1px;
+  }
+
+  /* Responsive col widths */
+  .col-s  { width: 56px; }
+  .col-m  { width: 90px; }
+  .col-l  { width: 110px; }
+  .col-xl { width: 130px; }
+
+  .tbl-note {
+    font-size: 0.75rem;
+    color: var(--text3);
+    margin-top: 0.5rem;
+  }
+
+  @media print {
+    body { background: #fff; padding: 1rem; font-size: 13px; }
+    .action-bar, .mode-tabs, .sample-controls input[type="range"], #mode-conc, #mode-cpv { display: none !important; }
+    .section-card { border: 1px solid #ccc; break-inside: avoid; margin-bottom: 0.75rem; padding: 0.75rem 1rem; }
+    header { border-bottom: 1.5px solid #999; margin-bottom: 1rem; padding-bottom: 0.75rem; }
+    header p.print-meta { display: block !important; }
+    button { display: none !important; }
+    .sample-controls { display: none !important; }
+    table { font-size: 12px; }
+    th, td { padding: 4px 6px; }
+    input, select { border: none; background: transparent; font-family: monospace; font-size: 12px; padding: 0; width: auto !important; }
+    .rep-inputs { flex-wrap: wrap; }
+  }
+
+    body { padding: 1rem 0.75rem 3rem; }
+    .global-row { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+    .rep-inputs input { min-width: 68px; }
+  }
+</style>
+</head>
+<body>
+<div class="page-wrap">
+
+  <header>
+    <p style="font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:0.35rem;">Broad Technology Space &ndash; Flow Cytometry Core</p>
+    <h1>Cell Suspension Calculator</h1>
+    <p>Up to 10 samples &middot; 1–3 replicates &middot; concentration adjustment or cells-per-volume</p>
+    <p style="margin-top:0.35rem; font-size:0.78rem; color:var(--text3);">Contact: <a href="mailto:flowcytostaff@broadinstitute.org" style="color:var(--accent); text-decoration:none;">flowcytostaff@broadinstitute.org</a></p>
+  </header>
+
+  <!-- Mode selection -->
+  <div class="section-card">
+    <div class="section-title">Calculation mode</div>
+    <div class="mode-tabs">
+      <button class="mode-tab active" onclick="setMode('conc')" id="tab-conc">Target concentration</button>
+      <button class="mode-tab" onclick="setMode('cpv')" id="tab-cpv">Cells per volume</button>
+    </div>
+
+    <!-- Target concentration inputs -->
+    <div id="mode-conc">
+      <div class="global-row">
+        <label class="checkbox-row">
+          <input type="checkbox" id="same-conc" onchange="toggleSameConc()"> Apply same target concentration to all samples
+        </label>
+      </div>
+      <div class="global-row" id="global-conc-row" style="display:none; margin-top:0.6rem;">
+        <label>Target concentration</label>
+        <input type="number" id="global-conc" min="0" step="any" placeholder="e.g. 1000000" style="width:150px" oninput="applyGlobalConc()">
+        <span style="font-size:0.82rem; color:var(--text3);">cells/mL</span>
+      </div>
+    </div>
+
+    <!-- Cells per volume inputs -->
+    <div id="mode-cpv" style="display:none;">
+      <div class="global-row">
+        <label>Cells per volume:</label>
+        <input type="number" id="cpv-cells" min="0" step="any" placeholder="e.g. 200000" style="width:150px" oninput="recalc()">
+        <span style="font-size:0.82rem; color:var(--text3);">cells per</span>
+        <input type="number" id="cpv-vol" min="0" step="any" placeholder="e.g. 50" style="width:90px" oninput="recalc()">
+        <span style="font-size:0.82rem; color:var(--text3);">µL</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Samples table -->
+  <div class="section-card">
+    <div class="section-title">Samples</div>
+
+    <div class="sample-controls">
+      <label>Number of samples</label>
+      <input type="range" min="1" max="10" value="3" id="n-samples" oninput="updateSampleCount()">
+      <span class="count-badge" id="sample-count-badge">3</span>
+    </div>
+
+    <div class="table-wrap">
+      <table id="sample-table">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <p class="tbl-note">Enter measured concentration(s) and total counted volume. Replicates are averaged.</p>
+  </div>
+
+  <!-- Results -->
+  <div class="section-card">
+    <div class="section-title">Results</div>
+    <div id="results-table-wrap"></div>
+  </div>
+
+  <!-- Actions -->
+  <div class="action-bar">
+    <button class="primary" onclick="recalc()">Calculate</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="printResults()">Print results</button>
+    <button onclick="clearAll()" class="danger-btn">Clear all</button>
+  </div>
+
+</div>
+
+<script>
+let mode = 'conc';
+let nSamples = 3;
+const MAX_SAMPLES = 10;
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('tab-conc').classList.toggle('active', m === 'conc');
+  document.getElementById('tab-cpv').classList.toggle('active', m === 'cpv');
+  document.getElementById('mode-conc').style.display = m === 'conc' ? '' : 'none';
+  document.getElementById('mode-cpv').style.display = m === 'cpv' ? '' : 'none';
+  buildTableHead();
+  buildTableBody();
+  recalc();
+}
+
+function toggleSameConc() {
+  const on = document.getElementById('same-conc').checked;
+  document.getElementById('global-conc-row').style.display = on ? 'flex' : 'none';
+  buildTableHead();
+  buildTableBody();
+  recalc();
+}
+
+function applyGlobalConc() {
+  const v = document.getElementById('global-conc').value;
+  for (let i = 0; i < nSamples; i++) {
+    const el = document.getElementById('target-' + i);
+    if (el) el.value = v;
+  }
+  recalc();
+}
+
+function updateSampleCount() {
+  nSamples = parseInt(document.getElementById('n-samples').value);
+  document.getElementById('sample-count-badge').textContent = nSamples;
+  buildTableBody();
+  recalc();
+}
+
+function fmtNum(n, digits) {
+  if (n === null || isNaN(n)) return '—';
+  if (digits === undefined) {
+    if (Math.abs(n) >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (Math.abs(n) >= 1e3) return (n / 1e3).toFixed(1) + 'k';
+    return n.toFixed(0);
+  }
+  return n.toFixed(digits);
+}
+
+function fmtCells(n) {
+  if (n === null || isNaN(n)) return '—';
+  if (n >= 1e9) return (n / 1e9).toFixed(3) + ' B';
+  if (n >= 1e6) return (n / 1e6).toFixed(3) + ' M';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + ' k';
+  return n.toFixed(0);
+}
+
+function buildTableHead() {
+  const sameConc = document.getElementById('same-conc').checked;
+  const head = document.getElementById('table-head');
+  let cols = `
+    <th class="col-s">Sample</th>
+    <th class="col-m">Replicates</th>
+    <th>Concentration(s) (cells/mL)</th>
+    <th class="col-l">Volume (mL)</th>
+  `;
+  if (mode === 'conc' && !sameConc) {
+    cols += `<th class="col-xl">Target conc. (cells/mL)</th>`;
+  }
+  head.innerHTML = `<tr>${cols}</tr>`;
+}
+
+function buildTableBody() {
+  const sameConc = document.getElementById('same-conc').checked;
+  const body = document.getElementById('table-body');
+  body.innerHTML = '';
+  for (let i = 0; i < nSamples; i++) {
+    const tr = document.createElement('tr');
+    const repSel = `<select class="rep-select" id="reps-${i}" onchange="updateReps(${i})" title="Replicates">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+    </select>`;
+    const repInputs = `<div class="rep-inputs" id="rep-inputs-${i}">
+      <input type="number" id="conc-${i}-0" min="0" step="any" placeholder="conc" oninput="recalc()">
+    </div>`;
+    const volInput = `<input type="number" id="vol-${i}" min="0" step="any" placeholder="vol" oninput="recalc()">`;
+    let targetCell = '';
+    if (mode === 'conc' && !sameConc) {
+      targetCell = `<td><input type="number" id="target-${i}" min="0" step="any" placeholder="target" oninput="recalc()"></td>`;
+    }
+    tr.innerHTML = `
+      <td><span class="sample-label">S${i + 1}</span></td>
+      <td>${repSel}</td>
+      <td>${repInputs}</td>
+      <td>${volInput}</td>
+      ${targetCell}
+    `;
+    body.appendChild(tr);
+  }
+}
+
+function updateReps(i) {
+  const n = parseInt(document.getElementById('reps-' + i).value);
+  const wrap = document.getElementById('rep-inputs-' + i);
+  while (wrap.children.length < n) {
+    const idx = wrap.children.length;
+    const inp = document.createElement('input');
+    inp.type = 'number'; inp.min = '0'; inp.step = 'any';
+    inp.placeholder = 'conc'; inp.id = `conc-${i}-${idx}`;
+    inp.addEventListener('input', recalc);
+    wrap.appendChild(inp);
+  }
+  while (wrap.children.length > n) wrap.removeChild(wrap.lastChild);
+  recalc();
+}
+
+function getConc(i) {
+  const n = parseInt(document.getElementById('reps-' + i).value);
+  const vals = [];
+  for (let r = 0; r < n; r++) {
+    const el = document.getElementById(`conc-${i}-${r}`);
+    const v = parseFloat(el ? el.value : '');
+    if (!isNaN(v) && v > 0) vals.push(v);
+  }
+  if (vals.length === 0) return null;
+  return vals.reduce((a, b) => a + b, 0) / vals.length;
+}
+
+let lastRows = [];
+
+function recalc() {
+  const sameConc = document.getElementById('same-conc').checked;
+  const wrap = document.getElementById('results-table-wrap');
+
+  let rows = [];
+  for (let i = 0; i < nSamples; i++) {
+    const avgConc = getConc(i);
+    const vol = parseFloat(document.getElementById('vol-' + i)?.value);
+    const totalCells = (avgConc && vol && vol > 0) ? avgConc * vol : null;
+
+    let resusVol = null, leftVol = null, leftCells = null, nVolumes = null, err = null;
+
+    if (mode === 'conc') {
+      const el = document.getElementById('target-' + i);
+      const targetConc = sameConc
+        ? parseFloat(document.getElementById('global-conc').value)
+        : parseFloat(el ? el.value : '');
+      if (totalCells && targetConc > 0) {
+        resusVol = totalCells / targetConc;
+      } else if (totalCells && targetConc === 0) {
+        err = 'Target cannot be 0';
+      }
+    } else {
+      const cpvCells = parseFloat(document.getElementById('cpv-cells').value);
+      const cpvVol = parseFloat(document.getElementById('cpv-vol').value);
+      if (totalCells && cpvCells > 0 && cpvVol > 0) {
+        const cpvConc = cpvCells / (cpvVol / 1000);
+        resusVol = totalCells / cpvConc;
+        nVolumes = Math.floor(totalCells / cpvCells);
+        leftCells = totalCells - nVolumes * cpvCells;
+        leftVol = leftCells / cpvConc;
+      }
+    }
+
+    rows.push({ i, avgConc, vol, totalCells, resusVol, nVolumes, leftCells, leftVol, err });
+  }
+
+  lastRows = rows;
+  renderResults(rows);
+}
+
+function renderResults(rows) {
+  const wrap = document.getElementById('results-table-wrap');
+  let html = `<div class="table-wrap"><table><thead><tr>
+    <th class="col-s">Sample</th>
+    <th>Avg concentration</th>
+    <th>Total cells</th>`;
+
+  if (mode === 'conc') {
+    html += `<th>Resuspend in</th>`;
+  } else {
+    const cpvCells = document.getElementById('cpv-cells').value;
+    const cpvVol = document.getElementById('cpv-vol').value;
+    html += `<th>Resuspend in</th><th>${cpvCells ? fmtCells(parseFloat(cpvCells)) : 'N'} / ${cpvVol || 'V'} µL volumes</th><th>Remainder</th>`;
+  }
+  html += `</tr></thead><tbody>`;
+
+  rows.forEach(r => {
+    html += `<tr>
+      <td><span class="sample-label">S${r.i + 1}</span></td>
+      <td class="result-cell">${r.avgConc !== null ? fmtCells(r.avgConc) + ' /mL' : '<span class="result-err">—</span>'}</td>
+      <td class="result-cell">${r.totalCells !== null ? fmtCells(r.totalCells) : '<span class="result-err">—</span>'}</td>`;
+
+    if (r.err) {
+      html += `<td class="result-err" colspan="${mode === 'cpv' ? 3 : 1}">${r.err}</td>`;
+    } else if (r.resusVol !== null) {
+      const volMl = r.resusVol;
+      const volDisp = volMl >= 1 ? fmtNum(volMl, 3) + ' mL' : fmtNum(volMl * 1000, 1) + ' µL';
+      if (mode === 'conc') {
+        const cls = volMl < 0.01 ? 'result-warn' : 'result-resus';
+        html += `<td class="result-cell ${cls}">${volDisp}</td>`;
+      } else {
+        html += `<td class="result-cell result-resus">${volDisp}</td>`;
+        html += `<td class="result-cell">${r.nVolumes !== null ? r.nVolumes + 'x' : '—'}</td>`;
+        const remCellDisp = r.leftCells !== null ? fmtCells(r.leftCells) : '—';
+        const remVolDisp = r.leftVol !== null
+          ? (r.leftVol >= 0.001 ? (r.leftVol >= 1 ? fmtNum(r.leftVol, 3) + ' mL' : fmtNum(r.leftVol * 1000, 1) + ' µL') : '< 1 µL')
+          : '—';
+        html += `<td class="cpv-extras">${remCellDisp !== '—' ? `<span>${remCellDisp}</span> cells in <span>${remVolDisp}</span>` : '—'}</td>`;
+      }
+    } else {
+      const empty = mode === 'cpv' ? '<td>—</td><td>—</td><td>—</td>' : '<td>—</td>';
+      html += empty;
+    }
+    html += `</tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  wrap.innerHTML = html;
+}
+
+function clearAll() {
+  document.getElementById('n-samples').value = 3;
+  nSamples = 3;
+  document.getElementById('sample-count-badge').textContent = 3;
+  document.getElementById('same-conc').checked = false;
+  document.getElementById('global-conc-row').style.display = 'none';
+  document.getElementById('global-conc').value = '';
+  document.getElementById('cpv-cells').value = '';
+  document.getElementById('cpv-vol').value = '';
+  buildTableHead();
+  buildTableBody();
+  recalc();
+}
+
+function exportCSV() {
+  const rows = lastRows;
+  if (!rows.length) return;
+  const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+  let headers, dataRows;
+  if (mode === 'conc') {
+    headers = ['Sample', 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)'];
+    dataRows = rows.map(r => [
+      `S${r.i + 1}`,
+      r.avgConc !== null ? r.avgConc.toFixed(0) : '',
+      r.vol || '',
+      r.totalCells !== null ? r.totalCells.toFixed(0) : '',
+      r.resusVol !== null ? r.resusVol.toFixed(4) : (r.err || '')
+    ]);
+  } else {
+    const cpvCells = document.getElementById('cpv-cells').value;
+    const cpvVol = document.getElementById('cpv-vol').value;
+    headers = ['Sample', 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)', `Complete ${cpvCells} cells/${cpvVol}µL Volumes`, 'Remainder Cells', 'Remainder Volume (mL)'];
+    dataRows = rows.map(r => [
+      `S${r.i + 1}`,
+      r.avgConc !== null ? r.avgConc.toFixed(0) : '',
+      r.vol || '',
+      r.totalCells !== null ? r.totalCells.toFixed(0) : '',
+      r.resusVol !== null ? r.resusVol.toFixed(4) : '',
+      r.nVolumes !== null ? r.nVolumes : '',
+      r.leftCells !== null ? r.leftCells.toFixed(0) : '',
+      r.leftVol !== null ? r.leftVol.toFixed(4) : ''
+    ]);
+  }
+  const csv = [headers, ...dataRows].map(row => row.map(esc).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'cell_suspension_results.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function printResults() {
+  window.print();
+}
+
+buildTableHead();
+buildTableBody();
+recalc();
+</script>
+</body>
+</html>
