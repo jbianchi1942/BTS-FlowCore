@@ -400,7 +400,20 @@
     margin-top: 0.5rem;
   }
 
-  @media (max-width: 600px) {
+  @media print {
+    body { background: #fff; padding: 1rem; font-size: 13px; }
+    .action-bar, .mode-tabs, .sample-controls input[type="range"], #mode-conc, #mode-cpv { display: none !important; }
+    .section-card { border: 1px solid #ccc; break-inside: avoid; margin-bottom: 0.75rem; padding: 0.75rem 1rem; }
+    header { border-bottom: 1.5px solid #999; margin-bottom: 1rem; padding-bottom: 0.75rem; }
+    header p.print-meta { display: block !important; }
+    button { display: none !important; }
+    .sample-controls { display: none !important; }
+    table { font-size: 12px; }
+    th, td { padding: 4px 6px; }
+    input, select { border: none; background: transparent; font-family: monospace; font-size: 12px; padding: 0; width: auto !important; }
+    .rep-inputs { flex-wrap: wrap; }
+  }
+
     body { padding: 1rem 0.75rem 3rem; }
     .global-row { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
     .rep-inputs input { min-width: 68px; }
@@ -414,6 +427,7 @@
     <p style="font-size:0.72rem; font-weight:600; letter-spacing:0.1em; text-transform:uppercase; color:var(--accent); margin-bottom:0.35rem;">Broad Technology Space &ndash; Flow Cytometry Core</p>
     <h1>Cell Suspension Calculator</h1>
     <p>Up to 10 samples &middot; 1–3 replicates &middot; concentration adjustment or cells-per-volume</p>
+    <p style="margin-top:0.35rem; font-size:0.78rem; color:var(--text3);">Contact: <a href="mailto:flowcytostaff@broadinstitute.org" style="color:var(--accent); text-decoration:none;">flowcytostaff@broadinstitute.org</a></p>
   </header>
 
   <!-- Mode selection -->
@@ -478,6 +492,8 @@
   <!-- Actions -->
   <div class="action-bar">
     <button class="primary" onclick="recalc()">Calculate</button>
+    <button onclick="exportCSV()">Export CSV</button>
+    <button onclick="printResults()">Print results</button>
     <button onclick="clearAll()" class="danger-btn">Clear all</button>
   </div>
 
@@ -613,6 +629,8 @@ function getConc(i) {
   return vals.reduce((a, b) => a + b, 0) / vals.length;
 }
 
+let lastRows = [];
+
 function recalc() {
   const sameConc = document.getElementById('same-conc').checked;
   const wrap = document.getElementById('results-table-wrap');
@@ -650,6 +668,7 @@ function recalc() {
     rows.push({ i, avgConc, vol, totalCells, resusVol, nVolumes, leftCells, leftVol, err });
   }
 
+  lastRows = rows;
   renderResults(rows);
 }
 
@@ -715,6 +734,47 @@ function clearAll() {
   buildTableHead();
   buildTableBody();
   recalc();
+}
+
+function exportCSV() {
+  const rows = lastRows;
+  if (!rows.length) return;
+  const esc = v => `"${String(v).replace(/"/g, '""')}"`;
+  let headers, dataRows;
+  if (mode === 'conc') {
+    headers = ['Sample', 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)'];
+    dataRows = rows.map(r => [
+      `S${r.i + 1}`,
+      r.avgConc !== null ? r.avgConc.toFixed(0) : '',
+      r.vol || '',
+      r.totalCells !== null ? r.totalCells.toFixed(0) : '',
+      r.resusVol !== null ? r.resusVol.toFixed(4) : (r.err || '')
+    ]);
+  } else {
+    const cpvCells = document.getElementById('cpv-cells').value;
+    const cpvVol = document.getElementById('cpv-vol').value;
+    headers = ['Sample', 'Avg Concentration (cells/mL)', 'Counted Volume (mL)', 'Total Cells', 'Resuspension Volume (mL)', `Complete ${cpvCells} cells/${cpvVol}µL Volumes`, 'Remainder Cells', 'Remainder Volume (mL)'];
+    dataRows = rows.map(r => [
+      `S${r.i + 1}`,
+      r.avgConc !== null ? r.avgConc.toFixed(0) : '',
+      r.vol || '',
+      r.totalCells !== null ? r.totalCells.toFixed(0) : '',
+      r.resusVol !== null ? r.resusVol.toFixed(4) : '',
+      r.nVolumes !== null ? r.nVolumes : '',
+      r.leftCells !== null ? r.leftCells.toFixed(0) : '',
+      r.leftVol !== null ? r.leftVol.toFixed(4) : ''
+    ]);
+  }
+  const csv = [headers, ...dataRows].map(row => row.map(esc).join(',')).join('\r\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'cell_suspension_results.csv';
+  a.click(); URL.revokeObjectURL(url);
+}
+
+function printResults() {
+  window.print();
 }
 
 buildTableHead();
