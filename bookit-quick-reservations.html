@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>BTS ONLY — BookIt Dashboard</title>
+<title>BookIt Dashboard</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f0f2f5;color:#333;min-height:100vh}
@@ -93,7 +93,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 <body>
 
 <div class="header">
-  <h1>🧬 BTS ONLY — BookIt Dashboard</h1>
+  <h1>🧬 BookIt Dashboard</h1>
 
 </div>
 
@@ -261,6 +261,11 @@ const RESERVATION_HISTORY_GROUPS = [
     color: '#c0392b',
     period: 'TodayTomorrow',
     eids: ['10480','11803','12480','16020','11904','10259','10258','12790','16257','14345','16168'] },
+
+  { label: 'All CytoFLEX — Today+Tomorrow',
+    color: '#8e44ad',
+    period: 'TodayTomorrow',
+    filter: { nameContains: ['cytoflex'] } },
 ];
 // ============================================================
 //  END OF RESERVATION HISTORY CONFIG
