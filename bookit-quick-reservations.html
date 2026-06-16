@@ -46,6 +46,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 .open-btn:hover{background:#bbdefb}
 .hidden{display:none!important}
 .no-results{text-align:center;color:#999;padding:40px}
+.res-history{background:white;padding:16px 30px;border-bottom:2px solid #e8ecf0}
+.res-history h2{font-size:.82em;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#888;margin-bottom:10px}
+.rh-grid{display:flex;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
@@ -55,6 +58,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
   <p>Click a Quick Group button, expand a category, or select instruments manually.</p>
 </div>
 
+<div class="res-history">
+  <h2>📋 Reservation History</h2>
+  <div class="rh-grid" id="rh-grid"><!-- built by JS --></div>
+</div>
 <div class="quick-groups">
   <h2>⚡ Quick Groups</h2>
   <div class="qg-grid" id="qg-grid"><!-- built by JS --></div>
@@ -152,6 +159,30 @@ const QUICK_GROUPS = [
 //  END OF CONFIG — no need to edit anything below this line
 // ============================================================
 
+// ============================================================
+//  RESERVATION HISTORY GROUPS
+//
+//  Each group needs:
+//    label  – button text
+//    color  – any CSS color string
+//    period – BookIt period param (e.g. 'TodayTomorrow', 'Today', 'ThisWeek')
+//    eids   – explicit list of equipment IDs (strings)
+//          OR
+//    filter – same filter rules as QUICK_GROUPS (nameContains / category / rooms)
+//
+//  To ADD a group: copy a block, paste it, adjust values.
+//  To REMOVE a group: delete its { ... } block.
+// ============================================================
+const RESERVATION_HISTORY_GROUPS = [
+  { label: 'All BTS Flow Core Sorters — Today+Tomorrow',
+    color: '#c0392b',
+    period: 'TodayTomorrow',
+    eids: ['10480','11803','12480','16020','11904','10259','10258','12790','16257','14345','16168'] },
+];
+// ============================================================
+//  END OF RESERVATION HISTORY CONFIG
+// ============================================================
+
 
 // --- build quick group buttons ---
 function matchFilter(inst, filter) {
@@ -178,6 +209,24 @@ QUICK_GROUPS.forEach(g => {
   btn.style.color = g.color;
   btn.innerHTML = '<span class="qg-count" style="background:' + g.color + '">' + items.length + '</span>' + g.label;
   grid.appendChild(btn);
+});
+
+// --- build reservation history buttons ---
+const rhGrid = document.getElementById('rh-grid');
+RESERVATION_HISTORY_GROUPS.forEach(g => {
+  const eids = g.eids
+    ? g.eids
+    : INSTRUMENTS.filter(i => matchFilter(i, g.filter)).map(i => i.editId);
+  const period = g.period || 'TodayTomorrow';
+  const url = 'https://core.bookitlab.com/broad/reservations?period=' + period + '&eid=' + eids.join('%7C') + '&stid=&un=&bid=&iid=&adg=&tr=&loan=';
+  const btn = document.createElement('a');
+  btn.className = 'qg-btn';
+  btn.href = url;
+  btn.target = '_blank';
+  btn.style.borderColor = g.color;
+  btn.style.color = g.color;
+  btn.innerHTML = '<span class="qg-count" style="background:' + g.color + '">' + eids.length + '</span>' + g.label;
+  rhGrid.appendChild(btn);
 });
 
 // --- category list interactions ---
